@@ -39,14 +39,14 @@ def main():
     
     #generate Ed25519 private key using OS's. 
     private_key = Ed25519PrivateKey.generate()
-    public_path = private_key.public_key()
+    public_key = private_key.public_key()
 
     #serializing the bytes. 
     private_byte = private_key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption(),)
     public_byte = public_key.public_key_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo,)
 
     with open(private_path, "wb") as f:
-        f.wrtie(private_byte)
+        f.write(private_byte)
     os.chmod(private_path, 0o600)
 
     with open(public_path, "wb") as f: 
@@ -55,7 +55,7 @@ def main():
     #compute the raw 32bytes public key for the fingerprinting 
     raw_public_key = public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw,)
 
-    fp = fingerprinting(raw_public_key)
+    fp = user_fingerprint(raw_public_key)
 
     #then we print out everything 
     print(f"+ Generating the identity for '{username}'\n    -private key: {private_path} (this is kept seceret)\n   -public key: {public_path}\n  -The fingerprint: {fp}\n\n    You can share the public key with anyone that would like to talk to you. \nNever share your Private key to anyone!")
