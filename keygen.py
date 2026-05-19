@@ -7,7 +7,7 @@ It'll produce:
     Private key: <username>_private.key 
     Public key: <username>_public.key 
 
-PS: Used colorama librayr to make it nicer and easier to read.
+PS: Used colorama library to make it nicer and easier to read.
 
 """
 
