@@ -28,7 +28,7 @@ def load_private_key(path) -> Ed25519PrivateKey:
 def load_public_key(path) -> Ed25519PublicKey:
     # loads pem-encoded ed25519 public key from disk
     pem_data = path.read_bytes()
-    key = serialization.load_der_public_key(pem_data)
+    key = serialization.load_pem_public_key(pem_data)
     if not isinstance(key, Ed25519PublicKey): 
         raise ValueError(f"{path} not an Ed25519 public key")
     return key
