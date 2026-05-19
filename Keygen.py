@@ -61,7 +61,7 @@ def main():
     # make sure that there isn't already a keypair that already exists and if so refuse to make a new one.
 
     if os.path.exists(private_path) or os.path.exists(public_path):
-        print(f"\n{Fore.RED}✗ ALERT! There is already keygen files for '{username}'.{Style.RESET_ALL}")
+        print(f"\n{Fore.RED}X ALERT! There is already keygen files for '{username}'.{Style.RESET_ALL}")
         if not delete_old_keys(private_path, public_path):
             sys.exit(1)
     
@@ -86,7 +86,7 @@ def main():
     fp = user_fingerprint(raw_public_key)
 
     # then we print out everything
-    print(f"\n{Fore.GREEN}✓ Generating the identity for '{username}'{Style.RESET_ALL}")
+    print(f"\n{Fore.GREEN}+ Generating the identity for '{username}'{Style.RESET_ALL}")
     print(f"\n{Fore.CYAN}Key Files:{Style.RESET_ALL}")
     print(f"  * {Fore.YELLOW}Private key:{Style.RESET_ALL} {private_path} {Fore.RED}(keep secret){Style.RESET_ALL}")
     print(f"  * {Fore.YELLOW}Public key:{Style.RESET_ALL} {public_path}")
