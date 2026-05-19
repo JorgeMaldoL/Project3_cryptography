@@ -43,7 +43,7 @@ def main():
 
     #serializing the bytes. 
     private_byte = private_key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption(),)
-    public_byte = public_key.public_key_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo,)
+    public_byte = public_key.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo,)
 
     with open(private_path, "wb") as f:
         f.write(private_byte)
