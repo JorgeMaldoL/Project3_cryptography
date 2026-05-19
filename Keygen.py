@@ -38,10 +38,10 @@ def delete_old_keys(private_path: str, public_path: str) -> bool:
                     os.remove(private_path)
                 if os.path.exists(public_path):
                     os.remove(public_path)
-                print(f"{Fore.GREEN}✓ Old key files deleted successfully.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}+ Old key files deleted successfully.{Style.RESET_ALL}")
                 return True
             except Exception as e:
-                print(f"{Fore.RED}✗ Error deleting files: {e}{Style.RESET_ALL}")
+                print(f"{Fore.RED}X Error deleting files: {e}{Style.RESET_ALL}")
                 return False
         elif response == 'n':
             print(f"{Fore.CYAN}Your old key files were not deleted.{Style.RESET_ALL}")
