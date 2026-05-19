@@ -125,9 +125,11 @@ def handle_client(conn: socket.socket, addr):
                 else:
                     conn.sendall(f"KEY {target} {b64_pem}\n".encode("utf-8"))
 
-            elif cmd == "MSG":
+            elif cmd in ("MSG", "INIT", "RESP"):
                 if len(parts) < 3:
-                    conn.sendall(b"ERROR Usage: MSG <recipient> <message>\n")
+                    conn.sendall(
+                        f"ERROR Usage: {cmd} <recipient> <payload>\n".encode("utf-8")
+                    )
                     continue
                 recipient = parts[1]
                 message_text = parts[2]
@@ -136,11 +138,18 @@ def handle_client(conn: socket.socket, addr):
                     target_sock = clients.get(recipient)
 
                 if target_sock is None:
-                    conn.sendall(f"ERROR No such user: {recipient}\n".encode("utf-8"))
+                    conn.sendall(
+                        f"ERROR No such user: {recipient}\n".encode("utf-8")
+                    )
                     continue
 
+                # route to correct wire keyword: msg->from, init->hsinit, resp->hsresp
+                out_kw = {"MSG": "FROM", "INIT": "HSINIT", "RESP": "HSRESP"}[cmd]
+
                 try:
-                    target_sock.sendall(f"FROM {username} {message_text}\n".encode("utf-8"))
+                    target_sock.sendall(
+                        f"{out_kw} {username} {message_text}\n".encode("utf-8")
+                    )
                     conn.sendall(b"INFO Message sent.\n")
                 except Exception:
                     conn.sendall(b"ERROR Failed to deliver message.\n")
