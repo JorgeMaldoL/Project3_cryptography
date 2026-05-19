@@ -1,0 +1,19 @@
+# Cryptographic keys — NEVER commit these
+*.key
+*.pem
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+
+# TOFU peer fingerprint store (we'll create this in Step 5)
+known_peers.json
+
+# AI chat transcripts you may save while working
+*.chat.txt
