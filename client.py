@@ -306,8 +306,7 @@ def handle_secure_command(sock: socket.socket, my_username: str, my_long_term_pr
 
     my_eph_priv, my_eph_pub = cs.generate_ephemeral_keypair()
     my_sig = cs.sign_ephemeral(my_long_term_priv, sender=my_username, recipient=target, ephemeral_pub_bytes=my_eph_pub)
-    payload = cs.make_handshake_payload(sender=my_username, recipient=target,
-                                         ephemeral_pub_bytes=my_eph_pub, signature=my_sig)
+    payload = cs.make_handshake_payload(sender=my_username, recipient=target,ephemeral_pub_bytes=my_eph_pub, signature=my_sig)
 
     # arm wait before sending to avoid race
     global pending_handshake_user, pending_handshake_payload
