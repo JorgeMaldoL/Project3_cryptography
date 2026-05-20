@@ -26,6 +26,7 @@ import base64
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from colorama import Fore, Style, init
 
 import paths
@@ -76,6 +77,23 @@ def load_peer_long_term_key(username: str) -> Ed25519PublicKey:
     if not isinstance(key, Ed25519PublicKey):
         raise ValueError(f"stored key for {username} is not ed25519")
     return key
+
+
+def encrypt_message(session: dict, plaintext: str) -> str:
+    # chacha20-poly1305: nonce = 12-byte little-endian counter
+    nonce = session["send_counter"].to_bytes(12, "little")
+    ct = ChaCha20Poly1305(session["send_key"]).encrypt(nonce, plaintext.encode("utf-8"), None)
+    session["send_counter"] += 1
+    return base64.b64encode(ct).decode("ascii")
+
+
+def decrypt_message(session: dict, blob_b64: str) -> str:
+    # raises InvalidTag on auth failure (tampering / wrong key / bad counter)
+    nonce = session["recv_counter"].to_bytes(12, "little")
+    ct = base64.b64decode(blob_b64)
+    plaintext = ChaCha20Poly1305(session["recv_key"]).decrypt(nonce, ct, None)
+    session["recv_counter"] += 1
+    return plaintext.decode("utf-8")
 
 
 # peer username -> Ed25519PublicKey (in-process cache of tofu'd keys)
@@ -139,6 +157,20 @@ def recv_loop(sock: socket.socket, my_username: str, my_long_term_priv: Ed25519P
                     pending_handshake_event.set()
                     continue
 
+            # decrypt FROM messages from peers with an active session
+            if len(parts) >= 3 and parts[0] == "FROM":
+                sender = parts[1]
+                with state_lock:
+                    session = sessions.get(sender)
+                if session is not None:
+                    try:
+                        plaintext = decrypt_message(session, parts[2])
+                        print(f"\nFROM {sender} {plaintext}")
+                    except Exception:
+                        print(f"\n{Fore.RED}X [system] TAMPER ALERT: message from '{sender}' failed authentication — possible tampering or corruption!{Style.RESET_ALL}")
+                    print("> ", end="", flush=True)
+                    continue
+
             print(f"\n{line}")
             print("> ", end="", flush=True)
     except Exception as e:
@@ -192,7 +224,7 @@ def _handle_incoming_hsinit(sock: socket.socket, my_username: str, my_long_term_
     resp_payload = cs.make_handshake_payload(sender=my_username, recipient=sender,
                                               ephemeral_pub_bytes=my_eph_pub, signature=my_sig)
     sock.sendall(f"RESP {sender} {resp_payload}\n".encode("utf-8"))
-    print(f"{Fore.GREEN}+ secure session with '{sender}' established (plaintext until step 7){Style.RESET_ALL}")
+    print(f"{Fore.GREEN}+ secure session with '{sender}' established (messages are now encrypted){Style.RESET_ALL}")
 
 
 def fetch_peer_key(sock: socket.socket, username: str, timeout: float = 5.0):
@@ -323,7 +355,7 @@ def handle_secure_command(sock: socket.socket, my_username: str, my_long_term_pr
         sessions[target] = cs.new_session(send_key=k_init_to_resp, recv_key=k_resp_to_init)
         pending_handshakes.pop(target, None)
 
-    print(f"{Fore.GREEN}+ secure session with '{target}' established (plaintext until step 7){Style.RESET_ALL}")
+    print(f"{Fore.GREEN}+ secure session with '{target}' established (messages are now encrypted){Style.RESET_ALL}")
 
 
 def handle_peers_command():
@@ -383,7 +415,7 @@ def handle_help_command():
     print(f"  /verify <user>     mark a peer as manually verified")
     print(f"  /quit              exit")
     print(f"  LIST               ask relay who's online")
-    print(f"  MSG <user> <text>  send plaintext message")
+    print(f"  MSG <user> <text>  send encrypted message (requires /secure <user> first)")
 
 
 def send_loop(sock: socket.socket, username: str, my_fp: str, my_long_term_priv: Ed25519PrivateKey):
@@ -420,6 +452,19 @@ def send_loop(sock: socket.socket, username: str, my_fp: str, my_long_term_priv:
                     print(f"{Fore.RED}usage: /verify <user>{Style.RESET_ALL}")
                     continue
                 handle_verify_command(parts[1].strip()); continue
+
+            # encrypt MSG to peers with an active session
+            parts = stripped.split(maxsplit=2)
+            if parts[0].upper() == "MSG" and len(parts) == 3:
+                peer, text = parts[1], parts[2]
+                with state_lock:
+                    session = sessions.get(peer)
+                if session is None:
+                    print(f"{Fore.RED}X no secure session with '{peer}'. run /secure {peer} first{Style.RESET_ALL}")
+                    continue
+                blob = encrypt_message(session, text)
+                sock.sendall(f"MSG {peer} {blob}\n".encode("utf-8"))
+                continue
 
             # send as raw relay command
             sock.sendall((stripped + "\n").encode("utf-8"))

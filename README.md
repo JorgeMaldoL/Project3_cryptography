@@ -1,25 +1,21 @@
 # Project3_cryptography
 
-Simple encrypted chat demo. Tools:
-- `keygen.py` — make an Ed25519 identity for a user
-- `client.py` — chat client that talks to the relay
-- `relay_server.py` — simple relay and key directory (untrusted)
+encrypted chat thing i made for class. pretty simple setup
 
-## Trust model
+## files
 
-Identity is a long-term Ed25519 key pair you make with `keygen.py`.
-The relay will hand out public keys, but the relay is NOT trusted.
-Anyone can upload any key and claim any name — the relay just stores blobs.
+- `keygen.py` - makes your identity (ed25519 key pair)
+- `client.py` - the actual chat client
+- `relay_server.py` - middle man server, just passes messages and stores public keys
 
-Client-side TOFU handles trust:
+## how trust works
 
-- First time you see someone, run `/secure <user>`.
-	- client fetches their public key from the relay and shows the fingerprint.
-	- if you accept, it stores the fingerprint with `verified=false` in `~/.encchat/known_peers.json`.
-- Next time you talk to them, the client accepts silently if the fingerprint matches.
-- If the fingerprint changed, the client prints a loud warning and refuses to proceed.
+the relay is NOT trusted, it literally just stores whatever keys people upload so anyone could upload a fake key under your name. thats why the client handles trust itself
 
-Run `/verify <user>` after you compare fingerprints out-of-band (phone, in-person).
-That flips `verified` to true and closes the obvious first-session MITM hole in TOFU.
+first time you wanna talk to someone securely run `/secure <user>`. it pulls their key from the relay and shows u the fingerprint. if u accept it saves it locally with verified=false
 
-Keep it simple: relay helps distribute keys, clients decide whether to trust them.
+next time you message them it checks if the fingerprint still matches. if it changed it freaks out and stops which is the right behavior bc that could be a mitm attack
+
+run `/verify <user>` after you compare fingerprints in person or over the phone or whatever. that flips verified to true and closes the first-session mitm hole that tofu has
+
+basically relay = key distribution, client = decides who to trust
